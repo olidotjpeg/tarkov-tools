@@ -3,6 +3,8 @@ import cheerio, { CheerioAPI } from "cheerio";
 
 import { barterUrl, tableSelector } from "./constants";
 import {
+  getImageUrls,
+  extractUrlMetaData,
   htmlStringDeleter,
   removeArrowStrings,
   removeLineBreaks,
@@ -11,8 +13,13 @@ import {
 
 interface GeneratedObject {
   trader: string;
-  barters: string[][];
+  barters: BarterItem[];
   titles: string[];
+}
+
+interface BarterItem {
+  images: string[];
+  lines: string[];
 }
 
 const traders = [
@@ -58,20 +65,27 @@ async function extractBarters(table: any, idx: number, $: CheerioAPI) {
   const $deepTable = $("tbody", table).toArray();
   const rows = $("tr", $deepTable).toArray();
   const barters = rows.map((row, idx) => {
-    const htmlRow = $(row).html();
-    return removeLineBreaks(htmlStringDeleter(htmlRow ?? ""));
+    const htmlRow = $(row).html() ?? "";
+    const imagesHtml = getImageUrls(htmlRow) ?? [];
+    const images = extractUrlMetaData(imagesHtml);
+    const internalBarters = removeLineBreaks(htmlStringDeleter(htmlRow));
+
+    const newBarter = {
+      images,
+      lines: removeArrowStrings(internalBarters),
+    };
+
+    return newBarter;
   });
 
-  generatedObject.titles = barters[0];
+  generatedObject.titles = barters[0].lines;
   barters.shift();
-
-  generatedObject.barters = barters.map((barter) => removeArrowStrings(barter));
+  generatedObject.barters = barters;
   GlobalBarters.push(generatedObject);
 }
 
 async function scrapeContent() {
   await buildTableStructure();
-
   writeToFileDEBUG(GlobalBarters);
 }
 
