@@ -1,6 +1,9 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
+import dotenv from "dotenv";
 import { API_URL } from "./constants";
 import { default as data } from "./test.json";
+
+dotenv.config({ path: "../.env" });
 
 let token = "";
 
